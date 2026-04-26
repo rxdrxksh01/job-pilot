@@ -44,7 +44,7 @@ export default function Dashboard() {
     // Dynamic API URL: Use localhost if on local, otherwise use Render URL
     const API_URL = window.location.hostname === 'localhost' 
       ? 'http://localhost:8000' 
-      : 'https://job-pilot-backend.onrender.com'; // We will set this up next
+      : 'https://job-pilot-8yvz.onrender.com'; 
 
     try {
       await fetch(`${API_URL}/scrape`, {

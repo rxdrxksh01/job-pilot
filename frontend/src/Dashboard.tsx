@@ -25,19 +25,6 @@ export default function Dashboard() {
       setHasSearched(true);
       if (searching) setSearching(false);
     }
-
-    // NEW: Poll for real agent status from database
-    if (searching && user) {
-        const { data: prefData } = await supabase
-            .from('user_preferences')
-            .select('agent_status')
-            .eq('user_id', user.id)
-            .single();
-        
-        if (prefData?.agent_status) {
-            setAgentStatus(prefData.agent_status);
-        }
-    }
   };
 
   useEffect(() => {
@@ -143,14 +130,13 @@ export default function Dashboard() {
                   <th scope="col" className="px-6 py-4 font-semibold">Company</th>
                   <th scope="col" className="px-6 py-4 font-semibold">Job Title</th>
                   <th scope="col" className="px-6 py-4 font-semibold text-center">LinkedIn</th>
-                  <th scope="col" className="px-6 py-4 font-semibold">AI Match</th>
                   <th scope="col" className="px-6 py-4 font-semibold text-right">Actions</th>
                 </tr>
               </thead>
               <tbody>
                 {jobs.length === 0 && (
                   <tr>
-                    <td colSpan={5} className="px-6 py-12 text-center">
+                    <td colSpan={4} className="px-6 py-12 text-center">
                       {searching ? (
                         <div className="flex flex-col items-center gap-3">
                           <Loader2 className="h-8 w-8 animate-spin text-blue-500" />
@@ -172,23 +158,6 @@ export default function Dashboard() {
                       <a href={`https://www.linkedin.com/jobs/view/${job.job_id}/`} target="_blank" className="text-blue-600 hover:underline font-medium inline-flex items-center gap-1">
                         Post <ExternalLink className="w-3.5 h-3.5" />
                       </a>
-                    </td>
-                    <td className="px-6 py-4">
-                      {job.resume_score ? (
-                        <div className="flex items-center gap-2">
-                          <div className="flex-1 h-2 bg-slate-100 rounded-full overflow-hidden w-16 hidden md:block">
-                            <div 
-                              className={`h-full ${job.resume_score >= 80 ? 'bg-emerald-500' : 'bg-blue-500'}`} 
-                              style={{ width: `${job.resume_score}%` }}
-                            ></div>
-                          </div>
-                          <span className={`px-2 py-0.5 rounded text-xs font-bold ${job.resume_score >= 80 ? 'bg-emerald-100 text-emerald-700' : 'bg-blue-100 text-blue-700'}`}>
-                            {job.resume_score}%
-                          </span>
-                        </div>
-                      ) : (
-                        <span className="text-slate-300">—</span>
-                      )}
                     </td>
                     <td className="px-6 py-4 text-right">
                        <button 

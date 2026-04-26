@@ -385,13 +385,25 @@ def process_linkedin_query(search_query: str, location: str, limit: int = None) 
     processed_count = 0
 
     ids_to_fetch = new_job_ids_to_process
+    seen_in_this_run = set()
 
     for i, job_id in enumerate(ids_to_fetch):
-        # Update status every few jobs
+        # Update status
         supabase_utils.update_agent_status(f"📥 Extracting details for job {i+1}/{len(ids_to_fetch)}...")
         
         details = _fetch_linkedin_job_details(job_id)
         if details:
+            company = details.get('company', '').strip().lower()
+            title = details.get('job_title', '').strip().lower()
+            
+            # --- DEDUPLICATION CHECK ---
+            if (company, title) in seen_in_this_run or (company, title) in company_title_set:
+                logging.info(f"Skipping duplicate job: {company} - {title}")
+                continue
+            
+            seen_in_this_run.add((company, title))
+            # ---------------------------
+
             description = details.get('description')
             if description and description.strip(): 
                 if 'job_id' in details and details['job_id'] is not None:

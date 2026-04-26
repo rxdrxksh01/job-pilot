@@ -187,9 +187,7 @@ export default function Dashboard() {
                           </span>
                         </div>
                       ) : (
-                        <span className="text-slate-400 italic flex items-center gap-1">
-                          <Loader2 className="h-3 w-3 animate-spin" /> Matching...
-                        </span>
+                        <span className="text-slate-300">—</span>
                       )}
                     </td>
                     <td className="px-6 py-4 text-right">

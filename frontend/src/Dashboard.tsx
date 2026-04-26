@@ -144,18 +144,28 @@ export default function Dashboard() {
                   <th scope="col" className="px-6 py-4 font-semibold">Job Title</th>
                   <th scope="col" className="px-6 py-4 font-semibold text-center">LinkedIn</th>
                   <th scope="col" className="px-6 py-4 font-semibold">AI Match</th>
+                  <th scope="col" className="px-6 py-4 font-semibold text-right">Actions</th>
                 </tr>
               </thead>
               <tbody>
-                {jobs.length === 0 && !searching && (
+                {jobs.length === 0 && (
                   <tr>
-                    <td colSpan={4} className="px-6 py-12 text-center text-slate-400">
-                      Searching for live jobs... Please wait.
+                    <td colSpan={5} className="px-6 py-12 text-center">
+                      {searching ? (
+                        <div className="flex flex-col items-center gap-3">
+                          <Loader2 className="h-8 w-8 animate-spin text-blue-500" />
+                          <p className="text-slate-500 italic font-medium animate-pulse">
+                            Agent is hunting for "{activeQuery}" leads...
+                          </p>
+                        </div>
+                      ) : (
+                        <p className="text-slate-400">No jobs found. Try a different query!</p>
+                      )}
                     </td>
                   </tr>
                 )}
                 {jobs.map((job) => (
-                  <tr key={job.job_id} className="border-b border-slate-50 hover:bg-blue-50/20 transition-colors">
+                  <tr key={job.job_id} className="border-b border-slate-50 hover:bg-blue-50/20 transition-colors group">
                     <td className="px-6 py-4 font-semibold text-slate-900">{job.company}</td>
                     <td className="px-6 py-4">{job.job_title}</td>
                     <td className="px-6 py-4 text-center">
@@ -165,10 +175,30 @@ export default function Dashboard() {
                     </td>
                     <td className="px-6 py-4">
                       {job.resume_score ? (
-                        <span className={`px-2 py-0.5 rounded text-xs font-bold ${job.resume_score >= 80 ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-600'}`}>
-                          {job.resume_score}%
+                        <div className="flex items-center gap-2">
+                          <div className="flex-1 h-2 bg-slate-100 rounded-full overflow-hidden w-16 hidden md:block">
+                            <div 
+                              className={`h-full ${job.resume_score >= 80 ? 'bg-emerald-500' : 'bg-blue-500'}`} 
+                              style={{ width: `${job.resume_score}%` }}
+                            ></div>
+                          </div>
+                          <span className={`px-2 py-0.5 rounded text-xs font-bold ${job.resume_score >= 80 ? 'bg-emerald-100 text-emerald-700' : 'bg-blue-100 text-blue-700'}`}>
+                            {job.resume_score}%
+                          </span>
+                        </div>
+                      ) : (
+                        <span className="text-slate-400 italic flex items-center gap-1">
+                          <Loader2 className="h-3 w-3 animate-spin" /> Matching...
                         </span>
-                      ) : 'Pending'}
+                      )}
+                    </td>
+                    <td className="px-6 py-4 text-right">
+                       <button 
+                         className="bg-slate-900 text-white px-4 py-2 rounded-lg text-xs font-bold hover:bg-blue-600 transition-all opacity-0 group-hover:opacity-100 shadow-lg shadow-slate-200"
+                         onClick={() => alert('Generating customized resume for ' + job.company + '...')}
+                       >
+                         Tailor Resume
+                       </button>
                     </td>
                   </tr>
                 ))}

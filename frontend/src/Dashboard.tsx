@@ -166,7 +166,7 @@ export default function Dashboard() {
                     <td className="px-6 py-4 font-semibold text-slate-900">{job.company}</td>
                     <td className="px-6 py-4">{job.job_title}</td>
                     <td className="px-6 py-4 text-center">
-                      <a href={`https://www.linkedin.com/jobs/view/${job.job_id}/`} target="_blank" className="text-blue-600 hover:underline font-medium inline-flex items-center gap-1">
+                      <a href={`https://www.linkedin.com/jobs/view/${job.job_id.split('_')[0]}/`} target="_blank" className="text-blue-600 hover:underline font-medium inline-flex items-center gap-1">
                         Post <ExternalLink className="w-3.5 h-3.5" />
                       </a>
                     </td>

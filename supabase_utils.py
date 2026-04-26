@@ -26,12 +26,12 @@ def get_existing_jobs_from_supabase(batch_size: int = 1000) -> tuple[set, set]:
 
     try:
         while True:
-            response = (
-                supabase.table(config.SUPABASE_TABLE_NAME)
-                .select("job_id, company, job_title")
-                .range(offset, offset + batch_size - 1)
-                .execute()
-            )
+            query = supabase.table(config.SUPABASE_TABLE_NAME).select("job_id, company, job_title")
+            
+            if config.CLERK_USER_ID:
+                query = query.eq("user_id", config.CLERK_USER_ID)
+                
+            response = query.range(offset, offset + batch_size - 1).execute()
 
             data = response.data
 
@@ -74,11 +74,14 @@ def save_jobs_to_supabase(jobs_data: list):
     processed_jobs_data = []
     for job in jobs_data:
         if 'job_id' in job and job['job_id'] is not None:
-             job['job_id'] = str(job['job_id'])
+             base_job_id = str(job['job_id'])
              
-             # INJECT MULTI-TENANT USER ID
+             # INJECT MULTI-TENANT USER ID AND PREVENT PK COLLISIONS
              if config.CLERK_USER_ID:
                  job['user_id'] = config.CLERK_USER_ID
+                 job['job_id'] = f"{base_job_id}_{config.CLERK_USER_ID}"
+             else:
+                 job['job_id'] = base_job_id
                  
              processed_jobs_data.append(job)
         else:

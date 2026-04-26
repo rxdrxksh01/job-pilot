@@ -1,10 +1,8 @@
 import { useEffect, useState } from 'react';
-import { useSupabase } from './useSupabase';
 import { useUser } from '@clerk/clerk-react';
 import { ExternalLink, Search, Loader2 } from 'lucide-react';
 
 export default function Dashboard() {
-  const supabase = useSupabase();
   const { user } = useUser();
   const [jobs, setJobs] = useState<any[]>([]);
   const [searching, setSearching] = useState(false);
@@ -14,18 +12,27 @@ export default function Dashboard() {
   const [hasSearched, setHasSearched] = useState(false);
   const [agentStatus, setAgentStatus] = useState<string>('Agent is idle. Awaiting your command...');
 
+  const API_URL = window.location.hostname === 'localhost' 
+    ? 'http://localhost:8000' 
+    : 'https://job-pilot-8yvz.onrender.com';
+
   const fetchJobs = async () => {
-    const { data: jobsData, error } = await supabase
-      .from('jobs')
-      .select('*')
-      .order('scraped_at', { ascending: false });
-    
-    console.log('🔄 fetchJobs poll:', { count: jobsData?.length, error: error?.message });
-    
-    if (jobsData && jobsData.length > 0) {
-      setJobs(jobsData);
-      setHasSearched(true);
-      if (searching) setSearching(false);
+    if (!user) return;
+    try {
+      const res = await fetch(`${API_URL}/jobs/${user.id}`);
+      const data = await res.json();
+      console.log('🔄 fetchJobs poll:', { count: data.jobs?.length });
+      
+      if (data.jobs && data.jobs.length > 0) {
+        setJobs(data.jobs);
+        setHasSearched(true);
+        if (searching) {
+          setSearching(false);
+          setAgentStatus('✅ Jobs found! Check your results below.');
+        }
+      }
+    } catch (err) {
+      console.error('fetchJobs error:', err);
     }
   };
 
@@ -33,7 +40,7 @@ export default function Dashboard() {
     fetchJobs();
     const interval = setInterval(fetchJobs, 3000); 
     return () => clearInterval(interval);
-  }, [supabase, searching, user]);
+  }, [searching, user]);
 
   const handleSearch = async () => {
     if (!searchQuery.trim() || !user) return;
@@ -45,10 +52,6 @@ export default function Dashboard() {
     setActiveQuery(searchQuery); 
     setAgentStatus("🚀 Initializing JobPilot Agent v1.0...");
 
-    // Dynamic API URL: Use localhost if on local, otherwise use Render URL
-    const API_URL = window.location.hostname === 'localhost' 
-      ? 'http://localhost:8000' 
-      : 'https://job-pilot-8yvz.onrender.com'; 
 
     console.log('📡 Calling backend at:', API_URL + '/scrape');
 

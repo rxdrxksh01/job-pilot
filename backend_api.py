@@ -25,35 +25,44 @@ class SearchRequest(BaseModel):
 
 @app.get("/health")
 async def health():
-    """Health check endpoint to verify the server is running."""
     return {"status": "ok", "python": sys.version}
+
+@app.get("/jobs/{user_id}")
+async def get_jobs(user_id: str):
+    """Fetch jobs for a user - uses service role key so RLS is bypassed."""
+    try:
+        result = supabase.table("jobs").select("*").eq("user_id", user_id).order("scraped_at", desc=True).execute()
+        print(f"📋 /jobs/{user_id}: returning {len(result.data)} jobs")
+        return {"jobs": result.data}
+    except Exception as e:
+        print(f"❌ /jobs error: {e}")
+        traceback.print_exc()
+        return {"jobs": [], "error": str(e)}
 
 @app.post("/scrape")
 async def trigger_scrape(request: SearchRequest, background_tasks: BackgroundTasks):
     print(f"🟢 /scrape called: query='{request.query}', location='{request.location}', user='{request.user_id}'")
     
-    # 1. Clear ALL old jobs for this user immediately
+    # 1. Clear old jobs
     try:
-        del_result = supabase.table("jobs").delete().eq("user_id", request.user_id).execute()
-        print(f"🗑️ Deleted old jobs: {del_result}")
+        supabase.table("jobs").delete().eq("user_id", request.user_id).execute()
+        print(f"🗑️ Deleted old jobs for {request.user_id}")
         
-        # 2. Update preferences for the scraper
-        pref_result = supabase.table("user_preferences").upsert({
+        # 2. Update preferences
+        supabase.table("user_preferences").upsert({
             "user_id": request.user_id,
             "linkedin_search_queries": [request.query],
             "location": request.location
         }, on_conflict="user_id").execute()
-        print(f"📝 Updated preferences: {pref_result}")
+        print(f"📝 Updated preferences")
     except Exception as e:
         print(f"❌ Error preparing database: {e}")
         traceback.print_exc()
 
-    # 3. Set CLERK_USER_ID so scraper knows which user to save for
+    # 3. Pass user ID to scraper
     env = os.environ.copy()
     env["CLERK_USER_ID"] = request.user_id
-    print(f"🔑 Setting CLERK_USER_ID={request.user_id}")
 
-    # 4. Run scraper in background
     def run_automation():
         try:
             print("🤖 BACKGROUND: Scraper starting...")
@@ -62,21 +71,18 @@ async def trigger_scrape(request: SearchRequest, background_tasks: BackgroundTas
                 env=env, 
                 capture_output=True, 
                 text=True,
-                timeout=300  # 5 minute timeout
+                timeout=300
             )
-            print(f"🏁 BACKGROUND: Scraper finished. Return code: {result.returncode}")
+            print(f"🏁 Scraper done. Code: {result.returncode}")
             if result.stdout:
-                print(f"📄 STDOUT (last 2000 chars):\n{result.stdout[-2000:]}")
+                print(f"STDOUT:\n{result.stdout[-2000:]}")
             if result.stderr:
-                print(f"⚠️ STDERR (last 2000 chars):\n{result.stderr[-2000:]}")
-        except subprocess.TimeoutExpired:
-            print("⏰ BACKGROUND: Scraper timed out after 5 minutes!")
+                print(f"STDERR:\n{result.stderr[-2000:]}")
         except Exception as e:
-            print(f"💥 BACKGROUND: Scraper crashed: {e}")
+            print(f"💥 Scraper crashed: {e}")
             traceback.print_exc()
 
     background_tasks.add_task(run_automation)
-
     return {"message": "Searching...", "user_id": request.user_id, "query": request.query}
 
 if __name__ == "__main__":

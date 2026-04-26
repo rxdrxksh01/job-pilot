@@ -10,33 +10,41 @@ export default function Dashboard() {
   const [searching, setSearching] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [location] = useState('India');
-  const [activeLocation, setActiveLocation] = useState('India');
+  const [activeQuery, setActiveQuery] = useState('');
   const [hasSearched, setHasSearched] = useState(false);
   const [agentStatus, setAgentStatus] = useState<string>('Agent is idle. Awaiting your command...');
 
   const fetchJobs = async () => {
-    const { data, error } = await supabase
+    const { data: jobsData } = await supabase
       .from('jobs')
       .select('*')
       .order('scraped_at', { ascending: false });
+    
+    if (jobsData && jobsData.length > 0) {
+      setJobs(jobsData);
+      setHasSearched(true);
+      if (searching) setSearching(false);
+    }
 
-    if (!error) {
-      setJobs(data || []);
-      if (data && data.length > 0) {
-        setHasSearched(true);
-        if (searching) {
-          setSearching(false);
-          setAgentStatus('✅ Task complete! I found and ranked your jobs.');
+    // NEW: Poll for real agent status from database
+    if (searching && user) {
+        const { data: prefData } = await supabase
+            .from('user_preferences')
+            .select('agent_status')
+            .eq('user_id', user.id)
+            .single();
+        
+        if (prefData?.agent_status) {
+            setAgentStatus(prefData.agent_status);
         }
-      }
     }
   };
 
   useEffect(() => {
     fetchJobs();
-    const interval = setInterval(fetchJobs, 5000); 
+    const interval = setInterval(fetchJobs, 3000); 
     return () => clearInterval(interval);
-  }, [supabase, searching]);
+  }, [supabase, searching, user]);
 
   const handleSearch = async () => {
     if (!searchQuery.trim() || !user) return;
@@ -44,29 +52,10 @@ export default function Dashboard() {
     setSearching(true);
     setJobs([]); 
     setHasSearched(true);
-    setActiveLocation(location); 
+    setActiveQuery(searchQuery); 
+    setAgentStatus("🚀 Initializing JobPilot Agent v1.0...");
 
-    const statuses = [
-      "🚀 Initializing JobPilot Agent v1.0...",
-      "🔍 Scanning LinkedIn for guest sessions...",
-      "📡 Pinging LinkedIn API for '" + searchQuery + "'...",
-      "📥 Extracting raw job data...",
-      "🧠 Initializing AI Brain for Match Scoring...",
-      "📊 Comparing your resume with job requirements...",
-      "✨ Polishing results for your dashboard..."
-    ];
-
-    let statusIdx = 0;
-    setAgentStatus(statuses[0]);
-    const statusInterval = setInterval(() => {
-      statusIdx++;
-      if (statusIdx < statuses.length) {
-        setAgentStatus(statuses[statusIdx]);
-      } else {
-        clearInterval(statusInterval);
-      }
-    }, 6000);
-
+    // Dynamic API URL: Use localhost if on local, otherwise use Render URL
     const API_URL = window.location.hostname === 'localhost' 
       ? 'http://localhost:8000' 
       : 'https://job-pilot-8yvz.onrender.com'; 
@@ -86,11 +75,6 @@ export default function Dashboard() {
       setAgentStatus('⚠️ Connection failed. Check backend logs.');
       setSearching(false);
     }
-    
-    // Safety timeout
-    setTimeout(() => {
-      clearInterval(statusInterval);
-    }, 90000);
   };
 
   return (
@@ -143,11 +127,13 @@ export default function Dashboard() {
           <div className="flex justify-between items-center mb-6">
             <h2 className="text-2xl font-bold text-slate-900 tracking-tight flex items-center gap-2">
               Recent Discoveries
-              <span className="text-slate-400 font-normal">for "{activeLocation}"</span>
+              <span className="text-slate-400 font-normal">for "{activeQuery || 'Your Search'}"</span>
             </h2>
-            <div className="text-sm font-bold text-blue-600 bg-blue-50 px-4 py-1.5 rounded-full border border-blue-100">
-              {jobs.length} Found
-            </div>
+            {!searching && jobs.length > 0 && (
+              <div className="text-sm font-bold text-blue-600 bg-blue-50 px-4 py-1.5 rounded-full border border-blue-100">
+                {jobs.length} Found
+              </div>
+            )}
           </div>
 
           <div className="overflow-x-auto rounded-xl border border-slate-100">

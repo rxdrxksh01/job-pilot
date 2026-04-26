@@ -386,26 +386,29 @@ def process_linkedin_query(search_query: str, location: str, limit: int = None) 
 
     ids_to_fetch = new_job_ids_to_process
 
-    for job_id in ids_to_fetch:
+    for i, job_id in enumerate(ids_to_fetch):
+        # Update status every few jobs
+        supabase_utils.update_agent_status(f"📥 Extracting details for job {i+1}/{len(ids_to_fetch)}...")
+        
         details = _fetch_linkedin_job_details(job_id)
         if details:
             description = details.get('description')
             if description and description.strip(): 
                 if 'job_id' in details and details['job_id'] is not None:
+                    # STREAMING: Save each job to Supabase immediately
+                    logging.info(f"Streaming job {job_id} to Supabase...")
+                    supabase_utils.save_jobs_to_supabase([details])
+                    
                     detailed_new_jobs.append(details)
                     processed_count += 1
                 else:
-                    
                     logging.warning(f"Fetched details for {job_id} but missing 'job_id' key. Skipping.")
             else:
-                
                 logging.warning(f"Skipping job ID {job_id} due to missing or empty description.") 
         else:
-            
             logging.warning(f"Skipping job ID {job_id} as detail fetching failed or returned no data.") 
 
-
-    logging.info(f"--- Finished Phase 2: Successfully fetched details for {processed_count} new job(s) ---")
+    logging.info(f"--- Finished Phase 2: Successfully fetched and streamed {processed_count} new job(s) ---")
     return detailed_new_jobs
 
 def _fetch_careers_future_jobs(search_query: str) -> list:
@@ -716,19 +719,20 @@ if __name__ == "__main__":
 
     # Get jobs from LinkedIn
     if "linkedin" in config.SCRAPING_SOURCES:
+        supabase_utils.update_agent_status("🔍 Starting LinkedIn exploration...")
         logging.info("\n--- Starting LinkedIn Job Scraping ---")
         max_jobs_per_search = config.MAX_JOBS_PER_SEARCH.get("linkedin", getattr(config, 'DEFAULT_MAX_JOBS_PER_SEARCH', 10))
         for query in linkedin_queries:
+            supabase_utils.update_agent_status(f"🎯 Target Acquired: '{query}'")
             print(f"\n{'='*20} Processing Search Query: '{query}' {'='*20}")
 
             # 1. Process the query: Scrape IDs, filter, fetch new details
             new_linkedin_job_details = process_linkedin_query(query, linkedin_location, limit=max_jobs_per_search)
 
-            # 2. Save the NEW scraped data to Supabase
+            # 2. Save the NEW scraped data to Supabase (already streamed, but we sum it up)
             if new_linkedin_job_details:
-                print(f"\n--- Saving {len(new_linkedin_job_details)} new job(s) for query '{query}' ---")
-                supabase_utils.save_jobs_to_supabase(new_linkedin_job_details)
                 total_new_jobs_saved += len(new_linkedin_job_details)
+                supabase_utils.update_agent_status(f"✅ Found {len(new_linkedin_job_details)} new roles for '{query}'.")
             else:
                 print(f"\nNo new job details were fetched or processed for query '{query}'.")
     else:

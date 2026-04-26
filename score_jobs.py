@@ -309,6 +309,7 @@ def main():
         if not jobs_to_score_initially:
             logging.info("No jobs require initial scoring at this time.")
         else:
+            supabase_utils.update_agent_status(f"🧠 AI Matchmaking: Analyzing {len(jobs_to_score_initially)} jobs...")
             logging.info(f"Processing {len(jobs_to_score_initially)} jobs for initial scoring...")
             successful_initial_scores = 0
             failed_initial_scores = 0
@@ -316,11 +317,13 @@ def main():
             # 4. Loop Through Jobs and Score Them
             for i, job in enumerate(jobs_to_score_initially):
                 job_id = job.get('job_id')
+                job_title = job.get('job_title', 'Role')
                 if not job_id:
                     logging.warning("Found job data without job_id during initial scoring. Skipping.")
                     failed_initial_scores +=1
                     continue
 
+                supabase_utils.update_agent_status(f"🤖 Scoring Match {i+1}/{len(jobs_to_score_initially)}: {job_title}")
                 logging.info(f"--- Initial Scoring Job {i+1}/{len(jobs_to_score_initially)} (ID: {job_id}) ---")
                 score = get_resume_score_from_ai(default_resume_text, job)
 
@@ -336,6 +339,7 @@ def main():
                     logging.debug(f"Waiting {config.LLM_REQUEST_DELAY_SECONDS} seconds before next API call...")
                     time.sleep(config.LLM_REQUEST_DELAY_SECONDS)
             
+            supabase_utils.update_agent_status("✅ AI Matchmaking complete.")
             initial_score_end_time = time.time()
             logging.info("--- Initial Scoring Phase Finished ---")
             logging.info(f"Successfully initially scored: {successful_initial_scores}")

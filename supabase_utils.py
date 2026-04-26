@@ -631,6 +631,23 @@ def get_base_resume() -> Optional[dict]:
         logging.error(f"Error fetching base resume from Supabase: {e}", exc_info=True)
         return None
 
+def update_agent_status(status_message: str):
+    """
+    Updates the 'agent_status' column in the 'user_preferences' table for the current user.
+    """
+    if not config.CLERK_USER_ID:
+        logging.warning("Cannot update agent status: CLERK_USER_ID not set.")
+        return
+
+    try:
+        logging.info(f"🤖 Agent Status Update: {status_message}")
+        supabase.table("user_preferences")\
+            .update({"agent_status": status_message})\
+            .eq("user_id", config.CLERK_USER_ID)\
+            .execute()
+    except Exception as e:
+        logging.error(f"Error updating agent status: {e}")
+
 def get_user_preferences() -> Optional[dict]:
     """
     Fetches the current user's search preferences from Supabase.

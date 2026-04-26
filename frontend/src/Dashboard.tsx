@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useSupabase } from './useSupabase';
 import { useUser } from '@clerk/clerk-react';
-import { ExternalLink, MapPin, Search, Loader2 } from 'lucide-react';
+import { ExternalLink, Search, Loader2 } from 'lucide-react';
 
 export default function Dashboard() {
   const supabase = useSupabase();
@@ -9,7 +9,7 @@ export default function Dashboard() {
   const [jobs, setJobs] = useState<any[]>([]);
   const [searching, setSearching] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
-  const [location, setLocation] = useState('India');
+  const [location] = useState('India');
   const [activeLocation, setActiveLocation] = useState('India');
   const [hasSearched, setHasSearched] = useState(false);
 

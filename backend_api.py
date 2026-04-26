@@ -36,12 +36,19 @@ async def trigger_scrape(request: SearchRequest, background_tasks: BackgroundTas
     except Exception as e:
         print(f"Error preparing database: {e}")
 
-    # 3. Run scraper in background
-    def run_scraper():
-        print(f"Starting background scrape for: {request.query}")
+    # 3. Run scraper and then scoring in background
+    def run_automation():
+        print(f"🚀 PHASE 1: Starting Scraper for '{request.query}'")
         subprocess.run(["python3", "scraper.py"], env=os.environ.copy())
+        
+        print("✅ PHASE 1 COMPLETE: Scraping finished.")
+        print("🤖 PHASE 2: Starting AI Match Scoring...")
+        
+        # Run AI Scorer
+        subprocess.run(["python3", "score_jobs.py"], env=os.environ.copy())
+        print("🏁 ALL PHASES COMPLETE: AI Scoring finished.")
 
-    background_tasks.add_task(run_scraper)
+    background_tasks.add_task(run_automation)
 
     return {"message": "Searching..."}
 

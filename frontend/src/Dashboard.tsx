@@ -15,10 +15,12 @@ export default function Dashboard() {
   const [agentStatus, setAgentStatus] = useState<string>('Agent is idle. Awaiting your command...');
 
   const fetchJobs = async () => {
-    const { data: jobsData } = await supabase
+    const { data: jobsData, error } = await supabase
       .from('jobs')
       .select('*')
       .order('scraped_at', { ascending: false });
+    
+    console.log('🔄 fetchJobs poll:', { count: jobsData?.length, error: error?.message });
     
     if (jobsData && jobsData.length > 0) {
       setJobs(jobsData);
@@ -36,6 +38,7 @@ export default function Dashboard() {
   const handleSearch = async () => {
     if (!searchQuery.trim() || !user) return;
     
+    console.log('🚀 handleSearch called with:', searchQuery, 'user:', user.id);
     setSearching(true);
     setJobs([]); 
     setHasSearched(true);
@@ -47,8 +50,10 @@ export default function Dashboard() {
       ? 'http://localhost:8000' 
       : 'https://job-pilot-8yvz.onrender.com'; 
 
+    console.log('📡 Calling backend at:', API_URL + '/scrape');
+
     try {
-      await fetch(`${API_URL}/scrape`, {
+      const res = await fetch(`${API_URL}/scrape`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -57,8 +62,11 @@ export default function Dashboard() {
           user_id: user.id
         }),
       });
+      console.log('✅ Backend responded:', res.status, res.statusText);
+      const data = await res.json();
+      console.log('📦 Response body:', data);
     } catch (err) {
-      console.error('Search failed:', err);
+      console.error('❌ Search failed:', err);
       setAgentStatus('⚠️ Connection failed. Check backend logs.');
       setSearching(false);
     }

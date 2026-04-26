@@ -7,7 +7,6 @@ export default function Dashboard() {
   const supabase = useSupabase();
   const { user } = useUser();
   const [jobs, setJobs] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
   const [searching, setSearching] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [location, setLocation] = useState('India');
@@ -24,7 +23,6 @@ export default function Dashboard() {
       setJobs(data || []);
       if (data && data.length > 0) setHasSearched(true);
     }
-    setLoading(false);
   };
 
   useEffect(() => {

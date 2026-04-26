@@ -1,6 +1,5 @@
 import { SignedIn, SignedOut, SignInButton, UserButton } from "@clerk/clerk-react";
 import Dashboard from "./Dashboard";
-import Preferences from "./Preferences";
 
 export default function App() {
   return (

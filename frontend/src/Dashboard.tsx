@@ -64,34 +64,29 @@ export default function Dashboard() {
     <div className="w-full flex flex-col gap-8">
       {/* SEARCH BAR */}
       <div className="w-full bg-white p-6 rounded-3xl shadow-2xl shadow-blue-100/50 border border-slate-100 flex flex-col md:flex-row gap-4 items-center">
-        <div className="flex-1 relative w-full">
-          <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 w-5 h-5" />
+        <div className="flex-1 flex items-center bg-slate-50 rounded-xl px-4 py-2 border border-slate-200 focus-within:ring-2 focus-within:ring-blue-500 focus-within:border-transparent transition-all">
+          <Search className="text-slate-400 mr-2 h-5 w-5" />
           <input
             type="text"
+            placeholder="Search for jobs (e.g. Machine Learning, Software Engineer)"
+            className="w-full bg-transparent border-none focus:outline-none text-slate-700"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
-            placeholder="Search for jobs (e.g. Intern)..."
-            className="w-full pl-12 pr-4 py-4 bg-slate-50 border-none rounded-2xl focus:ring-2 focus:ring-blue-500 text-slate-900 font-medium text-lg"
           />
         </div>
-        <div className="relative w-full md:w-48">
-          <MapPin className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 w-4 h-4" />
-          <input
-            type="text"
-            value={location}
-            onChange={(e) => setLocation(e.target.value)}
-            placeholder="India"
-            className="w-full pl-10 pr-4 py-4 bg-slate-50 border-none rounded-2xl focus:ring-2 focus:ring-blue-500 text-slate-900 font-medium"
-          />
-        </div>
+
         <button
           onClick={handleSearch}
           disabled={searching}
-          className="w-full md:w-auto bg-blue-600 hover:bg-blue-700 text-white font-bold py-4 px-10 rounded-2xl shadow-lg flex items-center justify-center gap-2 disabled:opacity-70 transition-all active:scale-95"
+          className="bg-blue-600 hover:bg-blue-700 text-white px-8 py-3 rounded-xl font-semibold flex items-center transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-blue-200"
         >
-          {searching ? <Loader2 className="w-5 h-5 animate-spin" /> : <Search className="w-5 h-5" />}
-          {searching ? 'Searching...' : 'Search'}
+          {searching ? (
+            <Loader2 className="h-5 w-5 animate-spin mr-2" />
+          ) : (
+            <Search className="h-5 w-5 mr-2" />
+          )}
+          Search
         </button>
       </div>
 

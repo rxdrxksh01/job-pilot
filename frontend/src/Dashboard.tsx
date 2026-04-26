@@ -39,10 +39,15 @@ export default function Dashboard() {
     setSearching(true);
     setJobs([]); // Clear results immediately
     setHasSearched(true);
-    setActiveLocation(location); // Update what we're searching for
+    setActiveLocation(location); 
+
+    // Dynamic API URL: Use localhost if on local, otherwise use Render URL
+    const API_URL = window.location.hostname === 'localhost' 
+      ? 'http://localhost:8000' 
+      : 'https://job-pilot-backend.onrender.com'; // We will set this up next
 
     try {
-      await fetch('http://localhost:8000/scrape', {
+      await fetch(`${API_URL}/scrape`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -54,7 +59,6 @@ export default function Dashboard() {
     } catch (err) {
       console.error('Search failed:', err);
     }
-    // Stay in searching state for a bit to give feedback
     setTimeout(() => setSearching(false), 3000);
   };
 

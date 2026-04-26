@@ -12,6 +12,7 @@ export default function Dashboard() {
   const [location] = useState('India');
   const [activeLocation, setActiveLocation] = useState('India');
   const [hasSearched, setHasSearched] = useState(false);
+  const [agentStatus, setAgentStatus] = useState<string>('Agent is idle. Awaiting your command...');
 
   const fetchJobs = async () => {
     const { data, error } = await supabase
@@ -21,25 +22,51 @@ export default function Dashboard() {
 
     if (!error) {
       setJobs(data || []);
-      if (data && data.length > 0) setHasSearched(true);
+      if (data && data.length > 0) {
+        setHasSearched(true);
+        if (searching) {
+          setSearching(false);
+          setAgentStatus('✅ Task complete! I found and ranked your jobs.');
+        }
+      }
     }
   };
 
   useEffect(() => {
     fetchJobs();
-    const interval = setInterval(fetchJobs, 5000); // Check for new jobs every 5s
+    const interval = setInterval(fetchJobs, 5000); 
     return () => clearInterval(interval);
-  }, [supabase]);
+  }, [supabase, searching]);
 
   const handleSearch = async () => {
     if (!searchQuery.trim() || !user) return;
     
     setSearching(true);
-    setJobs([]); // Clear results immediately
+    setJobs([]); 
     setHasSearched(true);
     setActiveLocation(location); 
 
-    // Dynamic API URL: Use localhost if on local, otherwise use Render URL
+    const statuses = [
+      "🚀 Initializing JobPilot Agent v1.0...",
+      "🔍 Scanning LinkedIn for guest sessions...",
+      "📡 Pinging LinkedIn API for '" + searchQuery + "'...",
+      "📥 Extracting raw job data...",
+      "🧠 Initializing AI Brain for Match Scoring...",
+      "📊 Comparing your resume with job requirements...",
+      "✨ Polishing results for your dashboard..."
+    ];
+
+    let statusIdx = 0;
+    setAgentStatus(statuses[0]);
+    const statusInterval = setInterval(() => {
+      statusIdx++;
+      if (statusIdx < statuses.length) {
+        setAgentStatus(statuses[statusIdx]);
+      } else {
+        clearInterval(statusInterval);
+      }
+    }, 6000);
+
     const API_URL = window.location.hostname === 'localhost' 
       ? 'http://localhost:8000' 
       : 'https://job-pilot-8yvz.onrender.com'; 
@@ -56,20 +83,46 @@ export default function Dashboard() {
       });
     } catch (err) {
       console.error('Search failed:', err);
+      setAgentStatus('⚠️ Connection failed. Check backend logs.');
+      setSearching(false);
     }
-    setTimeout(() => setSearching(false), 3000);
+    
+    // Safety timeout
+    setTimeout(() => {
+      clearInterval(statusInterval);
+    }, 90000);
   };
 
   return (
     <div className="w-full flex flex-col gap-8">
+      {/* AGENT CONSOLE */}
+      <div className="bg-slate-900 rounded-3xl p-6 shadow-2xl border border-slate-700 relative overflow-hidden group">
+        <div className="absolute top-0 left-0 w-1 h-full bg-blue-500 group-hover:w-2 transition-all"></div>
+        <div className="flex items-start gap-4">
+          <div className={`p-3 rounded-xl ${searching ? 'bg-blue-500 animate-pulse' : 'bg-slate-800'} text-white shadow-lg`}>
+            {searching ? <Loader2 className="h-6 w-6 animate-spin" /> : <Search className="h-6 w-6" />}
+          </div>
+          <div className="flex-1">
+            <div className="flex items-center gap-2 mb-1">
+              <span className="text-[10px] font-bold uppercase tracking-widest text-blue-400">Agentic Engine v1.0</span>
+              <div className="h-1.5 w-1.5 rounded-full bg-green-500 animate-pulse"></div>
+            </div>
+            <p className="text-slate-300 font-mono text-sm leading-relaxed">
+              <span className="text-blue-500 mr-2">$</span>
+              {agentStatus}
+            </p>
+          </div>
+        </div>
+      </div>
+
       {/* SEARCH BAR */}
       <div className="w-full bg-white p-6 rounded-3xl shadow-2xl shadow-blue-100/50 border border-slate-100 flex flex-col md:flex-row gap-4 items-center">
         <div className="flex-1 flex items-center bg-slate-50 rounded-xl px-4 py-2 border border-slate-200 focus-within:ring-2 focus-within:ring-blue-500 focus-within:border-transparent transition-all">
           <Search className="text-slate-400 mr-2 h-5 w-5" />
           <input
             type="text"
-            placeholder="Search for jobs (e.g. Machine Learning, Software Engineer)"
-            className="w-full bg-transparent border-none focus:outline-none text-slate-700"
+            placeholder="What job should I find for you?"
+            className="w-full bg-transparent border-none focus:outline-none text-slate-700 font-medium"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
@@ -79,23 +132,21 @@ export default function Dashboard() {
         <button
           onClick={handleSearch}
           disabled={searching}
-          className="bg-blue-600 hover:bg-blue-700 text-white px-8 py-3 rounded-xl font-semibold flex items-center transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-blue-200"
+          className="bg-blue-600 hover:bg-blue-700 text-white px-8 py-4 rounded-xl font-bold flex items-center transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-blue-200 active:scale-95"
         >
-          {searching ? (
-            <Loader2 className="h-5 w-5 animate-spin mr-2" />
-          ) : (
-            <Search className="h-5 w-5 mr-2" />
-          )}
-          Search
+          {searching ? 'Processing...' : 'Find Jobs'}
         </button>
       </div>
 
       {hasSearched && (
         <div className="w-full bg-white p-8 rounded-2xl shadow-xl shadow-slate-200/50 border border-slate-100 animate-in fade-in slide-in-from-bottom-4 duration-500">
           <div className="flex justify-between items-center mb-6">
-            <h2 className="text-2xl font-bold text-slate-900 tracking-tight">Results for "{activeLocation}"</h2>
-            <div className="text-sm font-medium text-slate-400 bg-slate-50 px-4 py-1.5 rounded-full">
-              {jobs.length} jobs found
+            <h2 className="text-2xl font-bold text-slate-900 tracking-tight flex items-center gap-2">
+              Recent Discoveries
+              <span className="text-slate-400 font-normal">for "{activeLocation}"</span>
+            </h2>
+            <div className="text-sm font-bold text-blue-600 bg-blue-50 px-4 py-1.5 rounded-full border border-blue-100">
+              {jobs.length} Found
             </div>
           </div>
 
